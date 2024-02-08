@@ -1,0 +1,208 @@
+/* General reset and basic styling */
+body,
+html {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f4f4f4;
+  color: #333;
+}
+
+.container {
+  max-width: 800px;
+  margin: 20px auto;
+  padding: 20px;
+  background-color: #fff;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+  color: #0056b3;
+  text-align: center;
+}
+
+.section {
+  margin-top: 20px;
+}
+
+h2 {
+  color: #007bff;
+  border-bottom: 2px solid #007bff;
+  padding-bottom: 5px;
+}
+
+.input-group {
+  margin-top: 10px;
+}
+
+.input-group input[type="text"] {
+  width: calc(50% - 12px);
+  padding: 8px;
+  margin-right: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.input-group>button {
+  padding: 10px 15px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.input-group>button:hover {
+  background-color: #0056b3;
+}
+
+
+.metrics,
+.analytics-data {
+  margin-top: 15px;
+  background-color: #f9f9f9;
+  padding: 10px;
+  border-radius: 5px;
+}
+
+pre {
+  background-color: #e9ecef;
+  padding: 10px;
+  overflow: auto;
+  border-radius: 5px;
+}
+
+.error {
+  color: #ff0000;
+  margin-top: 20px;
+}
+
+.success-message {
+  background-color: #dff0d8;
+  color: #3c763d;
+  padding: 10px;
+  border-radius: 4px;
+  margin-top: 20px;
+  text-align: center;
+}
+
+.metrics-list {
+  list-style: none;
+  /* Removes bullet points */
+  padding: 0;
+  /* Resets default padding */
+}
+
+.metrics-list li {
+  margin-bottom: 5px;
+  /* Adds some space between list items */
+}
+
+.metrics-list input[type="checkbox"] {
+  margin-right: 5px;
+  /* Adds some space between the checkbox and the label text */
+}
+
+
+/* Metrics Table Styling */
+.metrics-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.metrics-table th,
+.metrics-table td {
+  border: 1px solid #ddd;
+  text-align: left;
+  padding: 8px;
+}
+
+.metrics-table th {
+  background-color: #f2f2f2;
+}
+
+.metrics-table input[type="checkbox"] {
+  margin-right: 10px;
+  /* Space between checkbox and metric name */
+}
+
+.submit-button {
+  padding: 10px 15px;
+  background-color: #28a745;
+  /* Green background */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 10px;
+  /* Space between buttons */
+}
+
+.submit-button:hover {
+  background-color: #218838;
+  /* Darker green on hover */
+}
+
+/* Style for the clear button */
+.clear-button {
+  padding: 10px 15px;
+  background-color: #dc3545;
+  /* Red background */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.clear-button:hover {
+  background-color: #c82333;
+  /* Darker red on hover */
+}
+
+.button-group {
+  margin-top: 15px;
+  /* Increased vertical margin */
+  display: flex;
+  justify-content: flex-start;
+  /* Align buttons to the start of the flex container */
+  gap: 10px;
+  /* Space between buttons */
+}
+
+/* Style for disabled buttons to make them look visually disabled */
+.input-group button:disabled,
+.submit-button:disabled,
+.clear-button:disabled {
+  background-color: #cccccc;
+  /* Light grey background */
+  color: #666666;
+  /* Dark grey text */
+  /* Change cursor to indicate not allowed action */
+}
+
+.button {
+  padding: 10px 15px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.button:hover {
+  background-color: #0056b3;
+}
+
+.button:disabled {
+  background-color: #cccccc;
+  color: #666666;
+}
+
+.server-response p {
+  background-color: #dff0d8;
+  color: #3c763d;
+  padding: 10px;
+  border-radius: 4px;
+  margin-top: 20px;
+  text-align: center;
+}

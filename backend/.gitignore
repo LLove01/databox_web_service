@@ -1,0 +1,17 @@
+# Ignore .env file
+.env
+
+# Ignore Python cache directories
+__pycache__/
+
+# Ignore Python cache directories inside components directory
+components/**/__pycache__/
+
+# Ignore virtual environment directory
+venv/
+
+# Ignore oauth2_secrets.json file
+oauth2_secrets.json
+
+# Ignore test.db file
+test.db
