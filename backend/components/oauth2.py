@@ -1,11 +1,8 @@
-# components/oauth2.py
-
 import httpx
-from fastapi import HTTPException, BackgroundTasks
+from fastapi import HTTPException
 
 from google.analytics.data_v1beta import BetaAnalyticsDataClient
 from google.analytics.data_v1beta.types import RunReportRequest
-from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 import asyncio
 
