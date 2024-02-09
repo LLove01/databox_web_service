@@ -8,18 +8,10 @@ import json
 async def fetch_and_log_analytics_data(user_id: str, property_id: str, access_token: str, db: Session):
     try:
         data = fetch_data_with_client_library(access_token, property_id)
+        metric_headers = data.get("metricHeaders", [])
+        metrics_data = json.dumps([header for header in metric_headers])
+        num_of_kpis = len(metric_headers)
 
-        # Assuming 'data' is a dictionary with 'metricHeaders' containing the metrics' names
-        if "metricHeaders" in data:
-            metric_headers = data["metricHeaders"]
-            metrics_data = json.dumps(metric_headers)
-            num_of_kpis = len(metric_headers)
-        else:
-            metric_headers = []
-            metrics_data = json.dumps([])
-            num_of_kpis = 0
-
-        # Use create_log function for logging the successful operation
         create_log(
             db=db,
             operation='fetch',
@@ -34,17 +26,24 @@ async def fetch_and_log_analytics_data(user_id: str, property_id: str, access_to
 
     except Exception as e:
         error_msg = str(e)
+        status_code = 500  # Default to internal server error
 
-        # Use create_log function to log the failed operation
+        if "invalid credentials" in error_msg.lower():
+            status_code = 401
+        elif "not found" in error_msg.lower():
+            status_code = 404
+        elif "permission denied" in error_msg.lower():
+            status_code = 403
+        # Add more conditions as needed based on the errors encountered
+
         create_log(
             db=db,
             operation='fetch',
             service_provider='Google Analytics Data API',
-            metrics_sent=metrics_data,  # Attempted metrics to fetch
-            num_of_kpis=num_of_kpis,  # Number of KPIs attempted
+            metrics_sent="[]",
+            num_of_kpis=0,
             success=False,
             error_msg=error_msg
         )
 
-        # Return a JSONResponse indicating the failure
-        return JSONResponse({"error": "Failed to fetch GA data", "detail": error_msg}, status_code=401)
+        return JSONResponse({"error": "Failed to fetch GA data", "detail": error_msg}, status_code=status_code)

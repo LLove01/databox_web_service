@@ -21,6 +21,11 @@ function App() {
   const [selectedMetrics, setSelectedMetrics] = useState(new Set());
   const [databoxAccessToken, setDataboxAccessToken] = useState('');
   const [serverResponseMessage, setServerResponseMessage] = useState('');
+  const [fetchInterval, setFetchInterval] = useState(5); // Default fetch interval is set to 5 minutes
+  const [fetchIntervalId, setFetchIntervalId] = useState(null);
+  const [periodicInProgress, setPeriodicInProgress] = useState(false);
+
+
 
   useEffect(() => {
     // Load combined metrics from local storage
@@ -30,6 +35,44 @@ function App() {
     }
   }, []);
 
+  const handleIntervalChange = (event) => {
+    setFetchInterval(parseInt(event.target.value));
+  };
+
+  const handlePeriodicFetch = () => {
+    if (periodicInProgress) {
+      clearInterval(fetchIntervalId);
+      setPeriodicInProgress(false);
+    } else {
+      const fetchAndSubmitMetrics = async () => {
+        try {
+          localStorage.clear();
+          await fetchGithubMetrics();
+
+          const allMetrics = new Set(Object.keys(availableMetrics));
+          setSelectedMetrics(allMetrics);
+
+          await submitMetrics();
+        } catch (error) {
+          console.error("Error in periodic fetch and submit:", error);
+          clearInterval(fetchIntervalId); // Stop the interval on error
+          setPeriodicInProgress(false); // Update state to reflect stopped periodic fetch
+          setError(error.message || "An error occurred during periodic fetch and submit."); // Optional: Display error message to user
+          return; // Exit the function to prevent further execution
+        }
+      };
+
+      fetchAndSubmitMetrics();
+      const intervalId = setInterval(() => {
+        fetchAndSubmitMetrics();
+      }, fetchInterval * 60 * 1000);
+
+      setFetchIntervalId(intervalId);
+      setPeriodicInProgress(true);
+    }
+  };
+
+
   const saveMetricsToLocalStorage = (newMetrics) => {
     // Merge with existing metrics in local storage
     const existingMetrics = JSON.parse(localStorage.getItem('combinedMetrics')) || {};
@@ -37,6 +80,7 @@ function App() {
     localStorage.setItem('combinedMetrics', JSON.stringify(combinedMetrics));
     setAvailableMetrics(combinedMetrics); // Update state to trigger re-render
   };
+
 
   // Fetch GitHub Metrics
   const fetchGithubMetrics = async () => {
@@ -47,20 +91,37 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ repo_name: repoName, github_token: githubToken }),
       });
-      if (!response.ok) throw new Error('Failed to fetch GitHub metrics');
-      const data = await response.json();
 
-      // Assume the data is an object where keys are metric names and values are the metrics
-      const reformattedMetrics = {};
-      for (const [key, value] of Object.entries(data)) {
-        reformattedMetrics[key] = value;
+      if (response.ok) {
+        const data = await response.json();
+        // Assume the data is an object where keys are metric names and values are the metrics
+        const reformattedMetrics = {};
+        for (const [key, value] of Object.entries(data)) {
+          reformattedMetrics[key] = value;
+        }
+        saveMetricsToLocalStorage(reformattedMetrics);
+      } else {
+        // Handle different error codes with specific messages
+        let errorDetail = 'Failed to fetch GitHub metrics';
+        if (response.status === 404) {
+          errorDetail = 'GitHub repository not found.';
+        } else if (response.status === 401 || response.status === 403) {
+          errorDetail = 'Invalid GitHub token.';
+        } else if (response.status === 400) {
+          errorDetail = 'Bad request. Please check the repository name and token.';
+        }
+        else {
+          errorDetail = 'Internal server error.';
+        }
+        // Use errorDetail for specific error feedback
+        throw new Error(errorDetail);
       }
-      saveMetricsToLocalStorage(reformattedMetrics);
     } catch (error) {
       console.error('There was an error!', error);
       setError(error.toString());
     }
   };
+
   // Google Analytics Authentication
   const authenticateGoogleAnalytics = () => {
     const clientId = "122137706214-b7sj6gscpji81pqucanso26677hi2rle.apps.googleusercontent.com";
@@ -107,28 +168,44 @@ function App() {
         body: JSON.stringify({ user_id: userId, property_id: propertyId }),
       });
 
-      if (!response.ok) throw new Error('Failed to fetch Google Analytics data');
-      const data = await response.json();
+      if (response.ok) {
+        const data = await response.json();
 
-      if (data.error) {
-        setError(data.error);
+        if (data.error) {
+          setError(data.error);
+        } else {
+          const reformattedData = data.gaData.rows.reduce((formattedData, row) => {
+            row.metrics.forEach((metricValue, index) => {
+              const metricHeader = data.gaData.metricHeaders[index];
+              formattedData[metricHeader] = parseInt(metricValue, 10) || 0;
+            });
+            return formattedData;
+          }, {});
+          saveMetricsToLocalStorage(reformattedData);
+          console.log('Reformatted Google Analytics Data:', reformattedData);
+        }
       } else {
-        const reformattedData = data.gaData.rows.reduce((formattedData, row) => {
-          row.metrics.forEach((metricValue, index) => {
-            const metricHeader = data.gaData.metricHeaders[index];
-            // Convert the metric value to an integer, ensuring the conversion is safe
-            formattedData[metricHeader] = parseInt(metricValue, 10) || 0;
-          });
-          return formattedData;
-        }, {});
-        saveMetricsToLocalStorage(reformattedData);
-        console.log('Reformatted Google Analytics Data:', reformattedData);
+        const errorData = await response.json();
+        switch (response.status) {
+          case 401:
+            setError("Authentication failed. Please check your credentials.");
+            break;
+          case 404:
+            setError("The specified Google Analytics property ID was not found.");
+            break;
+          case 403:
+            setError("Access denied. You do not have permission to access this Google Analytics property.");
+            break;
+          default:
+            setError(errorData.error || "An unknown error occurred while fetching Google Analytics data.");
+        }
       }
     } catch (error) {
       console.error('Error fetching the Google Analytics data:', error);
-      setError(error.toString());
+      setError("An error occurred while processing your request. Please try again later.");
     }
   };
+
 
   const handleMetricSelectionChange = (metric, isChecked) => {
     setSelectedMetrics((prevSelectedMetrics) => {
@@ -142,56 +219,76 @@ function App() {
     });
   };
 
-  const handleSubmitSelectedMetrics = async (e) => {
-    e.preventDefault();
-
+  const submitMetrics = async () => {
     // Ensure Databox access token is provided
     if (!databoxAccessToken.trim()) {
       setError("Please provide the Databox access token.");
       return;
     }
 
-    // Construct the payload with selected metrics, their values, and the Databox access token
+    // Construct the payload
     const payload = {
-      metrics: Array.from(selectedMetrics).map(metricName => {
-        return { name: metricName, value: availableMetrics[metricName] };
-      }),
-      databox_access_token: databoxAccessToken, // Match the server's expected key
+      metrics: Array.from(selectedMetrics).map(metricName => ({
+        name: metricName,
+        value: availableMetrics[metricName]
+      })),
+      databox_access_token: databoxAccessToken,
     };
-    console.log(payload);
 
     try {
-      // Making a POST request to send the selected metrics along with the Databox access token
       const response = await fetch('http://localhost:8000/send-metrics', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
+      if (!response.ok) {
+        throw new Error('Unable to send metrics. Please check metrics and token.');
+      }
+
       const responseData = await response.json();
-      console.log('Server response:', responseData);
-
-      // Set the response message and clear it after 5 seconds
       setServerResponseMessage(responseData.message);
-      setTimeout(() => {
-        setServerResponseMessage('');
-      }, 5000);
-
-      // Clear the form and states after successful submission
-      // setDataboxAccessToken('');
-      // setSelectedMetrics(new Set());
-
+      setTimeout(() => setServerResponseMessage(''), 5000);
     } catch (error) {
-      console.error('Error submitting selected metrics:', error);
       setError(error.toString());
-      setServerResponseMessage(''); // Clear the response message in case of an error
-      setTimeout(() => {
-        setError('');
-      }, 5000);
+      setTimeout(() => setError(''), 5000);
     }
   };
+
+
+  const handleSubmitSelectedMetrics = async (e) => {
+    e.preventDefault(); // Prevent form submission default action
+    await submitMetrics(); // Call the core logic
+  };
+
+
+
+  // Function to generate mock data and update state
+  const generateMockData = () => {
+    // Clear existing data in local storage
+    localStorage.removeItem('combinedMetrics');
+
+    // Generate mock data
+    const mockData = {
+      'Total Revenue': 1500000,
+      'Net Profit': 300000,
+      'Customer Acquisition Cost': 500,
+      'Customer Lifetime Value': 2000,
+      'Conversion Rate': 0.05,
+      'Average Order Value': 100,
+      'Churn Rate': 0.1,
+      'Return on Investment (ROI)': 0.2,
+      // Add more metrics as needed
+    };
+
+
+    // Store mock data in local storage
+    localStorage.setItem('combinedMetrics', JSON.stringify(mockData));
+
+    // Update state with mock data
+    setAvailableMetrics(mockData);
+  };
+
 
 
   const handleClearLocalStorage = () => {
@@ -212,12 +309,25 @@ function App() {
       <section className="section">
         <h2>GitHub Data</h2>
         <div className="input-group">
-          <input type="text" placeholder="GitHub Repo Name" value={repoName} onChange={(e) => setRepoName(e.target.value)} />
-          <input type="text" placeholder="GitHub Token" value={githubToken} onChange={(e) => setGithubToken(e.target.value)} />
+          <input
+            type="text"
+            placeholder="GitHub Repo Name"
+            value={repoName}
+            onChange={(e) => setRepoName(e.target.value)}
+            disabled={periodicInProgress}
+          />
+          <input
+            type="text"
+            placeholder="GitHub Token"
+            value={githubToken}
+            onChange={(e) => setGithubToken(e.target.value)}
+            disabled={periodicInProgress}
+          />
+
           <button
-            className="button" // Apply the custom class
+            className="button"
             onClick={fetchGithubMetrics}
-            disabled={!repoName.trim() || !githubToken.trim()}
+            disabled={!repoName.trim() || !githubToken.trim() || periodicInProgress}
           >
             Fetch Metrics
           </button>
@@ -247,7 +357,7 @@ function App() {
                 Property Settings. It's required to access your analytics data.
               </p>
             )}
-            <form onSubmit={handlePropertyIdSubmit}>
+            <form onSubmit={handlePropertyIdSubmit} disabled={periodicInProgress}>
               <input
                 type="text"
                 placeholder="Property ID"
@@ -255,9 +365,9 @@ function App() {
                 onChange={(e) => setPropertyId(e.target.value)}
               />
               <button
-                className="button" // Apply the same custom class
+                className="button"
                 type="submit"
-                disabled={!propertyId.trim()}
+                disabled={!propertyId.trim() || periodicInProgress}
               >
                 Submit
               </button>
@@ -265,12 +375,19 @@ function App() {
             </form>
           </div>
         ) : (
-          <button onClick={authenticateGoogleAnalytics}>Access Google Analytics Data</button>
+          <button className="button" disabled={periodicInProgress} onClick={authenticateGoogleAnalytics}>Access Google Analytics Data</button>
         )}
       </section>
       {/* Available Metrics Section */}
       <section className="section">
         <h2>Available Metrics</h2>
+        <button
+          className="button"
+          onClick={generateMockData}
+          disabled={periodicInProgress}
+        >
+          Load Demo Data
+        </button>
         <div className="input-group">
           <form onSubmit={handleSubmitSelectedMetrics}>
             <table className="metrics-table">
@@ -298,13 +415,14 @@ function App() {
               value={databoxAccessToken}
               onChange={(e) => setDataboxAccessToken(e.target.value)}
               style={{ marginTop: '20px' }}
+              disabled={periodicInProgress}
             />
 
             <div className="button-group">
               <button
                 type="submit"
                 className="submit-button"
-                disabled={selectedMetrics.size < 3 || selectedMetrics.size > 5 || databoxAccessToken.trim() === ''}
+                disabled={selectedMetrics.size < 3 || selectedMetrics.size > 5 || databoxAccessToken.trim() === '' || periodicInProgress}
               >
                 Submit Selected Metrics
               </button>
@@ -313,13 +431,39 @@ function App() {
                 type="button"
                 className="clear-button"
                 onClick={handleClearLocalStorage}
-                disabled={isMetricsListEmpty()}
+                disabled={isMetricsListEmpty() || periodicInProgress}
               >
                 Clear Local Storage
               </button>
             </div>
           </form>
         </div>
+        {/* Periodic Fetch Section */}
+        <section className="section">
+          <h2>Periodic Fetch - only for GitHub data</h2>
+          <div className="input-group">
+            <button
+              className={`periodic-fetch-button ${(!repoName.trim() || !githubToken.trim() || !databoxAccessToken.trim()) ? 'disabled' : ''}`}
+              onClick={() => {
+                // Toggles the state of periodic fetching
+                handlePeriodicFetch();
+              }}
+              disabled={!repoName.trim() || !githubToken.trim() || !databoxAccessToken.trim()}
+            >
+              {periodicInProgress ? "Stop Fetching Periodically" : "Fetch Periodically"}
+            </button>
+
+
+
+            <select value={fetchInterval} onChange={handleIntervalChange}>
+              <option value={1}>1 Minute</option>
+              <option value={5}>5 Minutes</option>
+              <option value={60}>1 Hour</option>
+              <option value={1440}>1 Day</option>
+            </select>
+          </div>
+          {error && <p className="error-message">{error}</p>}
+        </section>
         {/* Server Response Message Section */}
         {serverResponseMessage && (
           <div className="server-response">
@@ -327,8 +471,6 @@ function App() {
           </div>
         )}
       </section>
-
-      {error && <p className="error">{error}</p>}
     </div>
   );
 }
