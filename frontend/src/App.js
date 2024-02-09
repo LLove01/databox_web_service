@@ -2,87 +2,50 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 
 function App() {
-  // State for GitHub integration
+  // State Variables
   const [repoName, setRepoName] = useState('');
   const [githubToken, setGithubToken] = useState('');
   const [githubMetrics, setGithubMetrics] = useState({});
   const [error, setError] = useState('');
-
-  // State for Google Analytics integration
   const [userId, setUserId] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [propertyId, setPropertyId] = useState('');
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [showInfoMessage, setShowInfoMessage] = useState(false);
-  const [googleAnalyticsData, setGoogleAnalyticsData] = useState(null);
-
-  // Pushing to databox
   const [availableMetrics, setAvailableMetrics] = useState({});
   const [selectedMetrics, setSelectedMetrics] = useState(new Set());
   const [databoxAccessToken, setDataboxAccessToken] = useState('');
   const [serverResponseMessage, setServerResponseMessage] = useState('');
-  const [fetchInterval, setFetchInterval] = useState(5); // Default fetch interval is set to 5 minutes
+  const [fetchInterval, setFetchInterval] = useState(5);
   const [fetchIntervalId, setFetchIntervalId] = useState(null);
   const [periodicInProgress, setPeriodicInProgress] = useState(false);
 
-
+  // EFFECT HOOKS 
 
   useEffect(() => {
-    // Load combined metrics from local storage
     const storedMetrics = JSON.parse(localStorage.getItem('combinedMetrics'));
     if (storedMetrics) {
       setAvailableMetrics(storedMetrics);
     }
   }, []);
 
-  const handleIntervalChange = (event) => {
-    setFetchInterval(parseInt(event.target.value));
-  };
-
-  const handlePeriodicFetch = () => {
-    if (periodicInProgress) {
-      clearInterval(fetchIntervalId);
-      setPeriodicInProgress(false);
-    } else {
-      const fetchAndSubmitMetrics = async () => {
-        try {
-          localStorage.clear();
-          await fetchGithubMetrics();
-
-          const allMetrics = new Set(Object.keys(availableMetrics));
-          setSelectedMetrics(allMetrics);
-
-          await submitMetrics();
-        } catch (error) {
-          console.error("Error in periodic fetch and submit:", error);
-          clearInterval(fetchIntervalId); // Stop the interval on error
-          setPeriodicInProgress(false); // Update state to reflect stopped periodic fetch
-          setError(error.message || "An error occurred during periodic fetch and submit."); // Optional: Display error message to user
-          return; // Exit the function to prevent further execution
-        }
-      };
-
-      fetchAndSubmitMetrics();
-      const intervalId = setInterval(() => {
-        fetchAndSubmitMetrics();
-      }, fetchInterval * 60 * 1000);
-
-      setFetchIntervalId(intervalId);
-      setPeriodicInProgress(true);
+  useEffect(() => {
+    const queryParams = new URLSearchParams(window.location.search);
+    const userIdFromUrl = queryParams.get('user_id');
+    if (userIdFromUrl) {
+      setUserId(userIdFromUrl);
+      setIsAuthenticated(true);
+      setShowSuccessMessage(true);
+      const timer = setTimeout(() => {
+        setShowSuccessMessage(false);
+        setShowInfoMessage(true);
+      }, 5000); // Hide after 5 seconds
+      return () => clearTimeout(timer);
     }
-  };
+  }, []);
 
+  // GITHUB FETCHING 
 
-  const saveMetricsToLocalStorage = (newMetrics) => {
-    // Merge with existing metrics in local storage
-    const existingMetrics = JSON.parse(localStorage.getItem('combinedMetrics')) || {};
-    const combinedMetrics = { ...existingMetrics, ...newMetrics };
-    localStorage.setItem('combinedMetrics', JSON.stringify(combinedMetrics));
-    setAvailableMetrics(combinedMetrics); // Update state to trigger re-render
-  };
-
-
-  // Fetch GitHub Metrics
   const fetchGithubMetrics = async () => {
     setError('');
     try {
@@ -122,7 +85,8 @@ function App() {
     }
   };
 
-  // Google Analytics Authentication
+  // GOOGLE ANALYTICS AUTHENTICATION AND FETCHING 
+
   const authenticateGoogleAnalytics = () => {
     const clientId = "122137706214-b7sj6gscpji81pqucanso26677hi2rle.apps.googleusercontent.com";
     const redirectUri = encodeURIComponent("http://localhost:8000/oauth-callback");
@@ -135,24 +99,6 @@ function App() {
     window.location.href = authUrl;
   };
 
-  React.useEffect(() => {
-    const queryParams = new URLSearchParams(window.location.search);
-    const userIdFromUrl = queryParams.get('user_id');
-    if (userIdFromUrl) {
-      setUserId(userIdFromUrl);
-      setIsAuthenticated(true);
-      setShowSuccessMessage(true); // Show success message upon authentication
-
-      const timer = setTimeout(() => {
-        setShowSuccessMessage(false);
-        setShowInfoMessage(true);
-      }, 5000); // Hide after 5 seconds
-
-      // Cleanup the timer when the component unmounts or the userId changes
-      return () => clearTimeout(timer);
-    }
-  }, []);
-
   const handlePropertyIdSubmit = async (e) => {
     e.preventDefault();
     if (!userId) {
@@ -161,7 +107,7 @@ function App() {
     }
 
     try {
-      setError(''); // Clear any existing errors
+      setError('');
       const response = await fetch('http://localhost:8000/fetch-analytics-data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -206,6 +152,24 @@ function App() {
     }
   };
 
+  // LOCAL STORAGE 
+
+  const handleClearLocalStorage = () => {
+    localStorage.clear();
+    setAvailableMetrics({});
+    setSelectedMetrics(new Set());
+    console.log('Local storage cleared.');
+  };
+
+  const saveMetricsToLocalStorage = (newMetrics) => {
+    // Merge with existing metrics in local storage
+    const existingMetrics = JSON.parse(localStorage.getItem('combinedMetrics')) || {};
+    const combinedMetrics = { ...existingMetrics, ...newMetrics };
+    localStorage.setItem('combinedMetrics', JSON.stringify(combinedMetrics));
+    setAvailableMetrics(combinedMetrics); // Update state to trigger re-render
+  };
+
+  // METRICS HANDLING 
 
   const handleMetricSelectionChange = (metric, isChecked) => {
     setSelectedMetrics((prevSelectedMetrics) => {
@@ -225,8 +189,6 @@ function App() {
       setError("Please provide the Databox access token.");
       return;
     }
-
-    // Construct the payload
     const payload = {
       metrics: Array.from(selectedMetrics).map(metricName => ({
         name: metricName,
@@ -255,20 +217,17 @@ function App() {
     }
   };
 
-
   const handleSubmitSelectedMetrics = async (e) => {
-    e.preventDefault(); // Prevent form submission default action
-    await submitMetrics(); // Call the core logic
+    e.preventDefault();
+    await submitMetrics();
   };
 
+  const isMetricsListEmpty = () => Object.keys(availableMetrics).length === 0;
 
+  // MOCK DATA 
 
-  // Function to generate mock data and update state
   const generateMockData = () => {
-    // Clear existing data in local storage
     localStorage.removeItem('combinedMetrics');
-
-    // Generate mock data
     const mockData = {
       'Total Revenue': 1500000,
       'Net Profit': 300000,
@@ -278,28 +237,51 @@ function App() {
       'Average Order Value': 100,
       'Churn Rate': 0.1,
       'Return on Investment (ROI)': 0.2,
-      // Add more metrics as needed
     };
-
-
-    // Store mock data in local storage
     localStorage.setItem('combinedMetrics', JSON.stringify(mockData));
-
-    // Update state with mock data
     setAvailableMetrics(mockData);
   };
 
+  // PERIODIC FETCHING AND SENDING FUNCTIONS 
 
-
-  const handleClearLocalStorage = () => {
-    localStorage.clear();
-    setAvailableMetrics({});
-    setSelectedMetrics(new Set());
-    console.log('Local storage cleared.');
+  const handleIntervalChange = (event) => {
+    setFetchInterval(parseInt(event.target.value));
   };
 
-  const isMetricsListEmpty = () => Object.keys(availableMetrics).length === 0;
+  const handlePeriodicFetch = () => {
+    if (periodicInProgress) {
+      clearInterval(fetchIntervalId);
+      setPeriodicInProgress(false);
+    } else {
+      const fetchAndSubmitMetrics = async () => {
+        try {
+          localStorage.clear();
+          await fetchGithubMetrics();
 
+          const allMetrics = new Set(Object.keys(availableMetrics));
+          setSelectedMetrics(allMetrics);
+
+          await submitMetrics();
+        } catch (error) {
+          console.error("Error in periodic fetch and submit:", error);
+          clearInterval(fetchIntervalId);
+          setPeriodicInProgress(false);
+          setError(error.message || "An error occurred during periodic fetch and submit.");
+          return;
+        }
+      };
+
+      fetchAndSubmitMetrics();
+      const intervalId = setInterval(() => {
+        fetchAndSubmitMetrics();
+      }, fetchInterval * 60 * 1000);
+
+      setFetchIntervalId(intervalId);
+      setPeriodicInProgress(true);
+    }
+  };
+
+  // JSX CODE 
 
   return (
     <div className="container">
@@ -363,6 +345,7 @@ function App() {
                 placeholder="Property ID"
                 value={propertyId}
                 onChange={(e) => setPropertyId(e.target.value)}
+                disabled={periodicInProgress}
               />
               <button
                 className="button"
@@ -440,17 +423,16 @@ function App() {
         </div>
         {/* Periodic Fetch Section */}
         <section className="section">
-          <h2>Periodic Fetch - only for GitHub data</h2>
+          <h2>Periodic Fetch & Push - only for GitHub data</h2>
           <div className="input-group">
             <button
               className={`periodic-fetch-button ${(!repoName.trim() || !githubToken.trim() || !databoxAccessToken.trim()) ? 'disabled' : ''}`}
               onClick={() => {
-                // Toggles the state of periodic fetching
                 handlePeriodicFetch();
               }}
               disabled={!repoName.trim() || !githubToken.trim() || !databoxAccessToken.trim()}
             >
-              {periodicInProgress ? "Stop Fetching Periodically" : "Fetch Periodically"}
+              {periodicInProgress ? "Stop periodic trigger" : "Start periodic trigger"}
             </button>
 
 
