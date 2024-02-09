@@ -42,5 +42,5 @@ def test_fetch_github_metrics_invalid_token():
 
     # Assert failure response
     # Assuming your endpoint returns 401 for unauthorized access
-    assert response.status_code == 400
-    assert response.json() == {"detail": "Failed to fetch GitHub metrics"}
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Invalid GitHub token."}
