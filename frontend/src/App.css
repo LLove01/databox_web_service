@@ -255,3 +255,11 @@ pre {
   font-size: 14px;
   white-space: nowrap;
 }
+
+.logs-container {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 20px;
+  border: 1px solid #ccc;
+  padding: 10px;
+}

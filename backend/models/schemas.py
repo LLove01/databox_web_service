@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import List, Optional
+from datetime import datetime
 
 
 class Metric(BaseModel):
@@ -22,3 +23,17 @@ class AnalyticsRequest(BaseModel):
 class RepoRequest(BaseModel):
     repo_name: str
     github_token: str
+
+
+class LogSchema(BaseModel):
+    id: int
+    operation: str
+    service_provider: str
+    time_of_sending: datetime
+    metrics_sent: str
+    num_of_kpis: int
+    success: bool
+    error_msg: Optional[str] = None
+
+    class Config:
+        orm_mode = True

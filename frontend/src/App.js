@@ -19,6 +19,8 @@ function App() {
   const [fetchInterval, setFetchInterval] = useState(5);
   const [fetchIntervalId, setFetchIntervalId] = useState(null);
   const [periodicInProgress, setPeriodicInProgress] = useState(false);
+  const [logs, setLogs] = useState([]);
+
 
   // EFFECT HOOKS 
 
@@ -281,10 +283,28 @@ function App() {
     }
   };
 
+  // FETCHING LOGS
+
+  const fetchLogs = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/fetch-logs');
+      if (!response.ok) {
+        throw new Error('Failed to fetch logs');
+      }
+      const data = await response.json();
+      setLogs(data);
+    } catch (error) {
+      console.error('Error fetching logs:', error);
+      alert('Failed to fetch logs. Check console for more details.');
+    }
+  };
+
   // JSX CODE 
 
   return (
     <div className="container">
+      {error && <p className="error-message">{error}</p>}
+
       <h1>DataBox Service Exercise</h1>
 
       {/* GitHub Data Section */}
@@ -434,9 +454,6 @@ function App() {
             >
               {periodicInProgress ? "Stop periodic trigger" : "Start periodic trigger"}
             </button>
-
-
-
             <select value={fetchInterval} onChange={handleIntervalChange}>
               <option value={1}>1 Minute</option>
               <option value={5}>5 Minutes</option>
@@ -444,8 +461,25 @@ function App() {
               <option value={1440}>1 Day</option>
             </select>
           </div>
-          {error && <p className="error-message">{error}</p>}
         </section>
+        {/* Logs display section */}
+        <section className="section">
+          <h2>Logs</h2>
+          <button className='button' onClick={fetchLogs}>Fetch Logs</button>
+          <button className='button' onClick={() => setLogs([])}>Clear Logs</button>
+          <p className="info-message">The log entries displayed here are retrieved directly from the server's database - only for demonstration purposes.</p>
+          <div className="logs-container" style={{ maxHeight: '300px', overflowY: 'auto', marginTop: '20px', border: '1px solid #ccc', padding: '10px' }}>
+            {logs.length > 0 ? (
+              logs.map((log, index) => (
+                <pre key={index}>{JSON.stringify(log, null, 2)}</pre>
+              ))
+            ) : (
+              <p>No logs to display.</p>
+            )}
+          </div>
+        </section>
+
+
         {/* Server Response Message Section */}
         {serverResponseMessage && (
           <div className="server-response">
