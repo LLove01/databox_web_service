@@ -13,7 +13,7 @@ This repository contains a service that extracts metrics from different data sou
 3. Open a terminal or command prompt.
 4. Run the following command to build the Docker images and start the containers:
 
->>*docker-compose up --build*
+>*docker-compose up --build*
 
 5. Wait for the build process to complete. Once finished, you should see the backend and frontend services running.
 6. Access the frontend of the application by opening a web browser and visiting http://localhost:3000.
@@ -31,7 +31,7 @@ Node.js and npm installed on your machine
 2. Navigate to the backend directory.
 3. Create a virtual environment by running:
 
- >> *python -m venv venv*
+ > *python -m venv venv*
 
 4. Activate the virtual environment:
 
@@ -40,12 +40,12 @@ Node.js and npm installed on your machine
 
 5. Install the Python dependencies:
    
->> *pip install -r requirements.txt*
+> *pip install -r requirements.txt*
 
 6. Run the FastAPI server:
-cwd must be root directory, not backend
-
->> *uvicorn backend.main:app --reload*
+   
+> cwd must be root directory, not backend
+> *uvicorn backend.main:app --reload*
 
 ### Frontend setup
 
@@ -53,11 +53,11 @@ cwd must be root directory, not backend
 2. Navigate to the frontend directory.
 3. Install the required npm packages:
 
-  >> *npm install*
+ > *npm install*
 
 4. Start React development server:
 
->> *npm start*
+> *npm start*
 
 5. Access the frontend of the application by opening a web browser and visiting http://localhost:3000.
 
