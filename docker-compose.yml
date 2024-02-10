@@ -1,0 +1,25 @@
+version: '3.8'
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      GOOGLE_CLIENT_ID: "122137706214-b7sj6gscpji81pqucanso26677hi2rle.apps.googleusercontent.com"
+      GOOGLE_CLIENT_SECRET: "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"
+    command: uvicorn backend.main:app --host 0.0.0.0 --reload
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - REACT_APP_BACKEND_URL=http://localhost:8000
+    command: npm start

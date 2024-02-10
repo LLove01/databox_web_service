@@ -9,11 +9,8 @@ import json
 
 router = APIRouter()
 
-# Assuming your OAuth2 secrets are loaded similarly as in main.py
-with open('backend/oauth2_secrets.json', 'r') as secrets_file:
-    secrets = json.load(secrets_file)
-    google_client_id = secrets['web']['client_id']
-    google_client_secret = secrets['web']['client_secret']
+google_client_id = os.getenv("GOOGLE_CLIENT_ID")
+google_client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
 
 REDIRECT_URI = "http://localhost:8000/oauth-callback"
 

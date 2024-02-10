@@ -5,7 +5,7 @@ function App() {
   // State Variables
   const [repoName, setRepoName] = useState('');
   const [githubToken, setGithubToken] = useState('');
-  const [githubMetrics, setGithubMetrics] = useState({});
+  const [githubMetrics] = useState({});
   const [error, setError] = useState('');
   const [userId, setUserId] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
