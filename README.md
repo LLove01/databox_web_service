@@ -2,7 +2,7 @@
 
 This repository contains a service that extracts metrics from different data sources and sends them to the Databox platform via Push API. Below are the deployment instructions for deploying the service using Docker or manually.
 
-## Docker Deployment
+## Docker Deployment (I tested on Windows, i think Linux might have some problems with npm)
 
 ### Prerequisites
 - Docker installed on your machine
