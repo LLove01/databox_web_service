@@ -46,6 +46,14 @@ function App() {
     }
   }, []);
 
+  useEffect(() => {
+    if (error) {
+      alert(error);
+      setError('');
+    }
+  }, [error]);
+
+
   // GITHUB FETCHING 
 
   const fetchGithubMetrics = async () => {
@@ -303,8 +311,6 @@ function App() {
 
   return (
     <div className="container">
-      {error && <p className="error-message">{error}</p>}
-
       <h1>DataBox Service Exercise</h1>
 
       {/* GitHub Data Section */}
