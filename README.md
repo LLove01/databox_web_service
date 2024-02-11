@@ -15,6 +15,11 @@ This repository contains a service that extracts metrics from different data sou
 
 >*docker-compose up --build*
 
+or for detached mode:
+
+>*docker-compose up --build -d*
+
+
 5. Wait for the build process to complete. Once finished, you should see the backend and frontend services running.
 6. Access the frontend of the application by opening a web browser and visiting http://localhost:3000.
 7. To stop the containers, press Ctrl + C in the terminal where Docker Compose is running.
