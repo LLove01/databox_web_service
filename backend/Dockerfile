@@ -4,7 +4,7 @@ FROM python:3.10.2
 # Set the working directory in the container
 WORKDIR /app
 
-# Copy the backend application files into the container
+# Copy the backend application along with the tests into the container
 COPY .. /app
 
 # Install the Python dependencies

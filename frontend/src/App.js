@@ -311,19 +311,24 @@ function App() {
 
   return (
     <div className="container">
+      {error && <p className="error-message">{error}</p>}
+
       <h1>DataBox Service Exercise</h1>
 
       {/* GitHub Data Section */}
       <section className="section">
         <h2>GitHub Data</h2>
         <div className="input-group">
-          <input
-            type="text"
-            placeholder="GitHub Repo Name"
-            value={repoName}
-            onChange={(e) => setRepoName(e.target.value)}
-            disabled={periodicInProgress}
-          />
+          <div className="repo-input">
+            <input
+              type="text"
+              placeholder="GitHub Repo Name"
+              value={repoName}
+              onChange={(e) => setRepoName(e.target.value)}
+              disabled={periodicInProgress}
+            />
+            <small>Format: username/project_name</small>
+          </div>
           <input
             type="text"
             placeholder="GitHub Token"
@@ -331,7 +336,6 @@ function App() {
             onChange={(e) => setGithubToken(e.target.value)}
             disabled={periodicInProgress}
           />
-
           <button
             className="button"
             onClick={fetchGithubMetrics}
@@ -339,8 +343,8 @@ function App() {
           >
             Fetch Metrics
           </button>
-
         </div>
+
         {Object.keys(githubMetrics).length > 0 && (
           <div className="metrics">
             {Object.entries(githubMetrics).map(([key, value]) => (
@@ -445,53 +449,52 @@ function App() {
                 Clear Local Storage
               </button>
             </div>
+            {/* Server Response Message Section */}
+            {serverResponseMessage && (
+              <div className="server-response">
+                <p>{serverResponseMessage}</p>
+              </div>
+            )}
           </form>
         </div>
-        {/* Periodic Fetch Section */}
-        <section className="section">
-          <h2>Periodic Fetch & Push - only for GitHub data</h2>
-          <div className="input-group">
-            <button
-              className={`periodic-fetch-button ${(!repoName.trim() || !githubToken.trim() || !databoxAccessToken.trim()) ? 'disabled' : ''}`}
-              onClick={() => {
-                handlePeriodicFetch();
-              }}
-              disabled={!repoName.trim() || !githubToken.trim() || !databoxAccessToken.trim()}
-            >
-              {periodicInProgress ? "Stop periodic trigger" : "Start periodic trigger"}
-            </button>
-            <select value={fetchInterval} onChange={handleIntervalChange}>
-              <option value={1}>1 Minute</option>
-              <option value={5}>5 Minutes</option>
-              <option value={60}>1 Hour</option>
-              <option value={1440}>1 Day</option>
-            </select>
-          </div>
-        </section>
-        {/* Logs display section */}
-        <section className="section">
-          <h2>Logs</h2>
-          <button className='button' onClick={fetchLogs}>Fetch Logs</button>
-          <button className='button' onClick={() => setLogs([])}>Clear Logs</button>
-          <p className="info-message">The log entries displayed here are retrieved directly from the server's database - only for demonstration purposes.</p>
-          <div className="logs-container" style={{ maxHeight: '300px', overflowY: 'auto', marginTop: '20px', border: '1px solid #ccc', padding: '10px' }}>
-            {logs.length > 0 ? (
-              logs.map((log, index) => (
-                <pre key={index}>{JSON.stringify(log, null, 2)}</pre>
-              ))
-            ) : (
-              <p>No logs to display.</p>
-            )}
-          </div>
-        </section>
+      </section>
 
-
-        {/* Server Response Message Section */}
-        {serverResponseMessage && (
-          <div className="server-response">
-            <p>{serverResponseMessage}</p>
-          </div>
-        )}
+      {/* Periodic Fetch Section */}
+      <section className="section">
+        <h2>Periodic Fetch & Push - only for GitHub data</h2>
+        <div className="input-group">
+          <button
+            className={`periodic-fetch-button ${(!repoName.trim() || !githubToken.trim() || !databoxAccessToken.trim()) ? 'disabled' : ''}`}
+            onClick={() => {
+              handlePeriodicFetch();
+            }}
+            disabled={!repoName.trim() || !githubToken.trim() || !databoxAccessToken.trim()}
+          >
+            {periodicInProgress ? "Stop periodic trigger" : "Start periodic trigger"}
+          </button>
+          <select value={fetchInterval} onChange={handleIntervalChange}>
+            <option value={1}>1 Minute</option>
+            <option value={5}>5 Minutes</option>
+            <option value={60}>1 Hour</option>
+            <option value={1440}>1 Day</option>
+          </select>
+        </div>
+      </section>
+      {/* Logs display section */}
+      <section className="section">
+        <h2>Logs</h2>
+        <button className='button' onClick={fetchLogs}>Fetch Logs</button>
+        <button className='button' onClick={() => setLogs([])}>Clear Logs</button>
+        <p className="info-message">The log entries displayed here are retrieved directly from the server's database - only for demonstration purposes.</p>
+        <div className="logs-container" style={{ maxHeight: '300px', overflowY: 'auto', marginTop: '20px', border: '1px solid #ccc', padding: '10px' }}>
+          {logs.length > 0 ? (
+            logs.map((log, index) => (
+              <pre key={index}>{JSON.stringify(log, null, 2)}</pre>
+            ))
+          ) : (
+            <p>No logs to display.</p>
+          )}
+        </div>
       </section>
     </div>
   );
